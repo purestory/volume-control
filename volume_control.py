@@ -27,8 +27,8 @@ class VolumeDisplay:
         self.height = 50
         screen_width = self.window.winfo_screenwidth()
         screen_height = self.window.winfo_screenheight()
-        x = (screen_width - self.width) // 2
-        y = screen_height - 150  # 화면 하단에서 약간 위
+        x = (screen_width - self.width) - 20 #// 2
+        y = screen_height - 110  # 화면 하단에서 약간 위
         self.window.geometry(f'{self.width}x{self.height}+{x}+{y}')
         
         # 볼륨 바 생성
@@ -270,26 +270,7 @@ def add_to_startup():
     except WindowsError:
         return False
 
-def show_volume_window():
-    # 화면 크기 가져오기
-    screen_width = GetSystemMetrics(0)
-    screen_height = GetSystemMetrics(1)
-    
-    # 창 크기 설정
-    window_width = 200
-    window_height = 50
-    
-    # 오른쪽 끝에서 약간 안쪽으로
-    x_position = screen_width - window_width - 20  # 20픽셀 여백
-    y_position = screen_height - 150  # 화면 하단에서 약간 위로
-    
-    # 창 위치 및 크기 설정
-    root.geometry(f'{window_width}x{window_height}+{x_position}+{y_position}')
-    
-    # 창 보이기
-    root.deiconify()
-    root.lift()
-    root.focus_force()
+
 
 def create_menu(icon):
     # 메뉴 생성
