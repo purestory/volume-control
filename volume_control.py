@@ -10,6 +10,7 @@ import sys
 import tkinter as tk
 from PIL import Image, ImageTk
 import math
+import pystray
 
 class VolumeDisplay:
     def __init__(self):
@@ -41,7 +42,7 @@ class VolumeDisplay:
         # 볼륨 레벨을 0-100 사이로 변환
         volume_percent = int(volume_level * 100)
         
-        # 캔버스 초기화
+        # 캔버스 초기화 
         self.canvas.delete('all')
         
         # 볼륨 바 그리기
@@ -158,7 +159,7 @@ class VolumeController:
             is_startup = self.check_startup()
             
             # 메뉴 아이템 추가 (체크 표시 포함)
-            win32gui.AppendMenu(menu, win32con.MF_STRING | (win32con.MF_CHECKED if is_startup else 0), 1024, "자동 실행")
+            win32gui.AppendMenu(menu, win32con.MF_STRING | (win32con.MF_CHECKED if is_startup else 0), 1024, "자동실행")
             win32gui.AppendMenu(menu, win32con.MF_SEPARATOR, 0, "")  # 구분선 추가
             win32gui.AppendMenu(menu, win32con.MF_STRING, 1023, "종료")
             
@@ -268,6 +269,46 @@ def add_to_startup():
         return True
     except WindowsError:
         return False
+
+def show_volume_window():
+    # 화면 크기 가져오기
+    screen_width = GetSystemMetrics(0)
+    screen_height = GetSystemMetrics(1)
+    
+    # 창 크기 설정
+    window_width = 200
+    window_height = 50
+    
+    # 오른쪽 끝에서 약간 안쪽으로
+    x_position = screen_width - window_width - 20  # 20픽셀 여백
+    y_position = screen_height - 150  # 화면 하단에서 약간 위로
+    
+    # 창 위치 및 크기 설정
+    root.geometry(f'{window_width}x{window_height}+{x_position}+{y_position}')
+    
+    # 창 보이기
+    root.deiconify()
+    root.lift()
+    root.focus_force()
+
+def create_menu(icon):
+    # 메뉴 생성
+    menu = (
+        item('볼륨조절', show_volume_window),  # 새로운 메뉴 항목 추가
+        item('종료', lambda: icon.stop()),
+    )
+    return menu
+
+def main():
+    image = Image.open("volume_control.ico")
+    icon = pystray.Icon(
+        "volume_control",
+        image,
+        "Volume Control",
+        create_menu(icon)  # 메뉴 설정
+    )
+    
+    icon.run()
 
 if __name__ == "__main__":
     # 시작 프로그램에 등록

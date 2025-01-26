@@ -1,0 +1,6 @@
+pywin32
+pystray
+pillow
+comtypes
+pycaw
+pynput 
