@@ -1,6 +1,8 @@
-pywin32
-pystray
-pillow
-comtypes
-pycaw
-pynput 
+comtypes==1.4.9
+pillow==11.1.0
+psutil==6.1.1
+pycaw==20240210
+pynput==1.7.7
+pystray==0.19.5
+pywin32==308
+six==1.17.0
