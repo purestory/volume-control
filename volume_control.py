@@ -8,9 +8,7 @@ import winreg
 import os
 import sys
 import tkinter as tk
-from PIL import Image, ImageTk
-import math
-import pystray
+from PIL import Image
 
 class VolumeDisplay:
     def __init__(self):
@@ -226,29 +224,22 @@ class VolumeController:
             os._exit(1)
 
     def on_scroll(self, x, y, dx, dy):
-        # 작업 표시줄 핸들 찾기
         taskbar_hwnd = win32gui.FindWindow("Shell_TrayWnd", None)
         if taskbar_hwnd:
-            # 작업 표시줄의 위치와 크기 가져오기
             taskbar_rect = win32gui.GetWindowRect(taskbar_hwnd)
             
-            # 마우스가 작업 표시줄 영역 안에 있는지 확인
             if (x >= taskbar_rect[0] and x <= taskbar_rect[2] and 
                 y >= taskbar_rect[1] and y <= taskbar_rect[3]):
                 
-                # 현재 볼륨 가져오기
                 current_volume = self.volume.GetMasterVolumeLevelScalar()
                 
-                # 볼륨 조절
+                # 볼륨 조절 단위 수정 (2%씩)
                 if dy > 0:
                     new_volume = min(1.0, current_volume + 0.02)
                 else:
                     new_volume = max(0.0, current_volume - 0.02)
                     
-                # 새로운 볼륨 설정
                 self.volume.SetMasterVolumeLevelScalar(new_volume, None)
-                
-                # 볼륨 표시
                 self.volume_display.show_volume(new_volume)
 
 def add_to_startup():
@@ -269,27 +260,6 @@ def add_to_startup():
         return True
     except WindowsError:
         return False
-
-
-
-def create_menu(icon):
-    # 메뉴 생성
-    menu = (
-        item('볼륨조절', show_volume_window),  # 새로운 메뉴 항목 추가
-        item('종료', lambda: icon.stop()),
-    )
-    return menu
-
-def main():
-    image = Image.open("volume_control.ico")
-    icon = pystray.Icon(
-        "volume_control",
-        image,
-        "Volume Control",
-        create_menu(icon)  # 메뉴 설정
-    )
-    
-    icon.run()
 
 if __name__ == "__main__":
     # 시작 프로그램에 등록
