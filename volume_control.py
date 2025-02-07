@@ -224,8 +224,25 @@ class VolumeController:
             os._exit(1)
 
     def on_scroll(self, x, y, dx, dy):
+        # 현재 활성화된 창 확인
+        foreground_hwnd = win32gui.GetForegroundWindow()
+        if foreground_hwnd:
+            # 전체화면 여부 확인
+            foreground_rect = win32gui.GetWindowRect(foreground_hwnd)
+            monitor_info = win32api.GetMonitorInfo(win32api.MonitorFromWindow(foreground_hwnd))
+            work_area = monitor_info['Work']  # 작업 영역 (작업 표시줄 제외)
+            monitor_area = monitor_info['Monitor']  # 전체 모니터 영역
+            
+            # 현재 창이 전체화면이면 볼륨 조절 비활성화
+            if foreground_rect == monitor_area and foreground_rect != work_area:
+                return
+
         taskbar_hwnd = win32gui.FindWindow("Shell_TrayWnd", None)
         if taskbar_hwnd:
+            taskbar_state = win32gui.IsWindowVisible(taskbar_hwnd)
+            if not taskbar_state:
+                return
+
             taskbar_rect = win32gui.GetWindowRect(taskbar_hwnd)
             
             if (x >= taskbar_rect[0] and x <= taskbar_rect[2] and 
@@ -233,7 +250,6 @@ class VolumeController:
                 
                 current_volume = self.volume.GetMasterVolumeLevelScalar()
                 
-                # 볼륨 조절 단위 수정 (2%씩)
                 if dy > 0:
                     new_volume = min(1.0, current_volume + 0.02)
                 else:
