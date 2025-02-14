@@ -248,15 +248,35 @@ class VolumeController:
             if (x >= taskbar_rect[0] and x <= taskbar_rect[2] and 
                 y >= taskbar_rect[1] and y <= taskbar_rect[3]):
                 
-                current_volume = self.volume.GetMasterVolumeLevelScalar()
-                
-                if dy > 0:
-                    new_volume = min(1.0, current_volume + 0.02)
-                else:
-                    new_volume = max(0.0, current_volume - 0.02)
+                try:
+                    current_volume = self.volume.GetMasterVolumeLevelScalar()
                     
-                self.volume.SetMasterVolumeLevelScalar(new_volume, None)
-                self.volume_display.show_volume(new_volume)
+                    if dy > 0:
+                        new_volume = min(1.0, current_volume + 0.02)
+                    else:
+                        new_volume = max(0.0, current_volume - 0.02)
+                        
+                    # 볼륨 변경 시도
+                    result = self.volume.SetMasterVolumeLevelScalar(new_volume, None)
+                    
+                    # 볼륨 변경이 성공했는지 확인
+                    actual_volume = self.volume.GetMasterVolumeLevelScalar()
+                    if abs(actual_volume - new_volume) < 0.001:  # 오차 범위 내에서 확인
+                        self.volume_display.show_volume(new_volume)
+                    else:
+                        # 볼륨 변경 실패 시 재시도
+                        self.volume.SetMasterVolumeLevelScalar(new_volume, None)
+                        self.volume_display.show_volume(new_volume)
+                        
+                except Exception as e:
+                    print(f"볼륨 조절 오류: {e}")
+                    # 오류 발생 시 오디오 세션 재초기화
+                    try:
+                        devices = pycaw.AudioUtilities.GetSpeakers()
+                        interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+                        self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
+                    except Exception:
+                        pass
 
 def add_to_startup():
     # 현재 실행 파일의 경로
