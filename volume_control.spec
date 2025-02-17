@@ -7,11 +7,7 @@ a = Analysis(
     pathex=[],
     binaries=[],
     datas=[('volume_control.ico', '.')],
-    hiddenimports=[
-        'pynput.mouse._win32',
-        'pynput.keyboard._win32',
-        'pkg_resources.py2_warn'
-    ],
+    hiddenimports=[],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -53,4 +49,4 @@ coll = COLLECT(
     upx=True,
     upx_exclude=[],
     name='VolumeControl',
-)
+) 
