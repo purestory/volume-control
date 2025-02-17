@@ -25,24 +25,25 @@ class SystemTray:
             0, 0, win32con.CW_USEDEFAULT, win32con.CW_USEDEFAULT,
             0, 0, hinst, None)
         
-        if getattr(sys, 'frozen', False):
-            application_path = sys._MEIPASS
-        else:
-            application_path = os.path.dirname(os.path.abspath(__file__))
+        # 아이콘 리소스 ID 사용
+        icon_flags = win32con.LR_DEFAULTSIZE
+        try:
+            if getattr(sys, 'frozen', False):
+                # EXE에서 실행될 때
+                hicon = win32gui.LoadIcon(hinst, 1)
+            else:
+                # 스크립트에서 실행될 때
+                icon_path = os.path.join(os.path.dirname(__file__), "volume_control.ico")
+                hicon = win32gui.LoadImage(hinst, icon_path, 
+                                         win32con.IMAGE_ICON, 0, 0, 
+                                         win32con.LR_LOADFROMFILE | icon_flags)
             
-        icon_path = os.path.join(application_path, "volume_control.ico")
-        
-        if os.path.exists(icon_path):
-            try:
-                icon_flags = win32con.LR_LOADFROMFILE | win32con.LR_DEFAULTSIZE
-                hicon = win32gui.LoadImage(hinst, icon_path, win32con.IMAGE_ICON, 0, 0, icon_flags)
-                
-                flags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
-                nid = (self.hwnd, 0, flags, win32con.WM_USER + 20, hicon, "볼륨 컨트롤")
-                win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
-                self.hicon = hicon
-            except Exception as e:
-                print(f"아이콘 로드 실패: {e}")
+            flags = win32gui.NIF_ICON | win32gui.NIF_MESSAGE | win32gui.NIF_TIP
+            nid = (self.hwnd, 0, flags, win32con.WM_USER + 20, hicon, "볼륨 컨트롤")
+            win32gui.Shell_NotifyIcon(win32gui.NIM_ADD, nid)
+            self.hicon = hicon
+        except Exception as e:
+            print(f"아이콘 로드 실패: {e}")
 
     def on_destroy(self, hwnd, msg, wparam, lparam):
         try:

@@ -36,8 +36,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='volume_control.ico',
-    uac_admin=True,
+    icon='volume_control.ico'
 )
 
 coll = COLLECT(
