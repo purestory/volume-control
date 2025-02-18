@@ -15,6 +15,24 @@ from volume_display import VolumeDisplay
 from system_tray import SystemTray
 from screen_saver_blocker import ScreenSaverBlocker
 
+def is_fullscreen_app_running():
+    """전체화면 앱/게임 실행 여부 확인"""
+    try:
+        foreground_hwnd = win32gui.GetForegroundWindow()
+        if foreground_hwnd:
+            # 현재 활성 창의 크기 가져오기
+            window_rect = win32gui.GetWindowRect(foreground_hwnd)
+            # 현재 모니터의 크기 가져오기
+            monitor_info = win32api.GetMonitorInfo(win32api.MonitorFromWindow(foreground_hwnd))
+            monitor_rect = monitor_info['Monitor']
+            
+            # 창 크기가 모니터 크기와 같으면 전체화면으로 간주
+            return (window_rect == monitor_rect and 
+                    win32gui.GetWindowText(foreground_hwnd) != "Program Manager")
+    except:
+        pass
+    return False
+
 class VolumeController:
     def __init__(self):
         self.root = tk.Tk()
@@ -86,6 +104,10 @@ class VolumeController:
         self.root.after(0, self.volume_display.show_volume, volume_level)
 
     def on_scroll(self, x, y, dx, dy):
+        # 전체화면 앱/게임이 실행 중이면 볼륨 조절하지 않음
+        if is_fullscreen_app_running():
+            return
+            
         current_time = time.time()
         if current_time - self.last_volume_update < self.volume_update_interval:
             return
