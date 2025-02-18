@@ -1,8 +1,11 @@
 import tkinter as tk
 
 class VolumeDisplay:
-    def __init__(self):
-        self.window = tk.Tk()
+    def __init__(self, root=None):
+        if root:
+            self.window = root
+        else:
+            self.window = tk.Tk()
         self.window.withdraw()  # 초기에는 숨김
         
         # 창 설정

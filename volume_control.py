@@ -17,16 +17,22 @@ from screen_saver_blocker import ScreenSaverBlocker
 
 class VolumeController:
     def __init__(self):
+        self.root = tk.Tk()
+        self.root.withdraw()  # 메인 윈도우 숨기기
+        
         devices = pycaw.AudioUtilities.GetSpeakers()
         interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
         self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
         
-        self.volume_display = VolumeDisplay()
+        self.volume_display = VolumeDisplay(self.root)
         self.screen_blocker = ScreenSaverBlocker()
         self.system_tray = SystemTray(self)
         
         self.listener = mouse.Listener(on_scroll=self.on_scroll)
         self.listener.start()
+
+        self.last_volume_update = 0
+        self.volume_update_interval = 0.05  # 50ms
 
     def check_startup(self):
         try:
@@ -63,38 +69,30 @@ class VolumeController:
     def quit_app(self):
         try:
             self.listener.stop()
-            # 화면 보호기 차단 해제
             if self.screen_blocker.prevent_sleep:
                 self.screen_blocker.toggle_prevent_sleep()
-            self.volume_display.window.destroy()
+            self.root.quit()
             if hasattr(self.system_tray, 'hwnd'):
                 try:
                     win32gui.Shell_NotifyIcon(win32gui.NIM_DELETE, (self.system_tray.hwnd, 0))
                 except:
                     pass
                 win32gui.DestroyWindow(self.system_tray.hwnd)
-            os._exit(0)
         except Exception as e:
             print(f"종료 중 오류 발생: {e}")
             os._exit(1)
 
-    def on_scroll(self, x, y, dx, dy):
-        foreground_hwnd = win32gui.GetForegroundWindow()
-        if foreground_hwnd:
-            foreground_rect = win32gui.GetWindowRect(foreground_hwnd)
-            monitor_info = win32api.GetMonitorInfo(win32api.MonitorFromWindow(foreground_hwnd))
-            work_area = monitor_info['Work']
-            monitor_area = monitor_info['Monitor']
-            
-            if foreground_rect == monitor_area and foreground_rect != work_area:
-                return
+    def show_volume(self, volume_level):
+        self.root.after(0, self.volume_display.show_volume, volume_level)
 
+    def on_scroll(self, x, y, dx, dy):
+        current_time = time.time()
+        if current_time - self.last_volume_update < self.volume_update_interval:
+            return
+        self.last_volume_update = current_time
+        
         taskbar_hwnd = win32gui.FindWindow("Shell_TrayWnd", None)
         if taskbar_hwnd:
-            taskbar_state = win32gui.IsWindowVisible(taskbar_hwnd)
-            if not taskbar_state:
-                return
-
             taskbar_rect = win32gui.GetWindowRect(taskbar_hwnd)
             
             if (x >= taskbar_rect[0] and x <= taskbar_rect[2] and 
@@ -104,7 +102,7 @@ class VolumeController:
                     current_volume = self.volume.GetMasterVolumeLevelScalar()
                     new_volume = min(1.0, current_volume + 0.02) if dy > 0 else max(0.0, current_volume - 0.02)
                     self.volume.SetMasterVolumeLevelScalar(new_volume, None)
-                    self.volume_display.show_volume(new_volume)
+                    self.show_volume(new_volume)
                 except Exception as e:
                     print(f"볼륨 조절 오류: {e}")
                     try:
@@ -116,7 +114,4 @@ class VolumeController:
 
 if __name__ == "__main__":
     controller = VolumeController()
-    try:
-        tk.mainloop()
-    except KeyboardInterrupt:
-        controller.quit_app() 
+    controller.root.mainloop() 
