@@ -14,6 +14,7 @@ import time
 from volume_display import VolumeDisplay
 from system_tray import SystemTray
 from screen_saver_blocker import ScreenSaverBlocker
+import pythoncom  # COM 초기화를 위해 추가
 
 def is_fullscreen_app_running():
     """전체화면 앱/게임 실행 여부 확인"""
@@ -35,12 +36,14 @@ def is_fullscreen_app_running():
 
 class VolumeController:
     def __init__(self):
-        self.root = tk.Tk()
-        self.root.withdraw()  # 메인 윈도우 숨기기
+        # COM 초기화 추가
+        pythoncom.CoInitialize()
         
-        devices = pycaw.AudioUtilities.GetSpeakers()
-        interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-        self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
+        self.root = tk.Tk()
+        self.root.withdraw()
+        
+        # 볼륨 컨트롤 초기화 - 더 안정적인 방식으로
+        self.init_volume_control()
         
         self.volume_display = VolumeDisplay(self.root)
         self.screen_blocker = ScreenSaverBlocker()
@@ -51,6 +54,15 @@ class VolumeController:
 
         self.last_volume_update = 0
         self.volume_update_interval = 0.05  # 50ms
+
+    def init_volume_control(self):
+        try:
+            devices = pycaw.AudioUtilities.GetSpeakers()
+            interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
+        except Exception as e:
+            print(f"볼륨 초기화 오류: {e}")
+            self.volume = None
 
     def check_startup(self):
         try:
@@ -96,6 +108,9 @@ class VolumeController:
                 except:
                     pass
                 win32gui.DestroyWindow(self.system_tray.hwnd)
+            # COM 해제
+            pythoncom.CoUninitialize()
+            os._exit(0)
         except Exception as e:
             print(f"종료 중 오류 발생: {e}")
             os._exit(1)
@@ -120,19 +135,42 @@ class VolumeController:
             if (x >= taskbar_rect[0] and x <= taskbar_rect[2] and 
                 y >= taskbar_rect[1] and y <= taskbar_rect[3]):
                 
+                # 마우스 리스너 스레드에서 COM 초기화
+                pythoncom.CoInitialize()
+                
                 try:
+                    # 볼륨이 None인 경우 재초기화
+                    if self.volume is None:
+                        self.init_volume_control()
+                        
+                    # 볼륨 정보 가져오기
                     current_volume = self.volume.GetMasterVolumeLevelScalar()
-                    new_volume = min(1.0, current_volume + 0.02) if dy > 0 else max(0.0, current_volume - 0.02)
+                    
+                    # 새 볼륨 계산
+                    delta = 0.02  # 2%씩 조절
+                    if dy > 0:  # 휠 위로
+                        new_volume = min(1.0, current_volume + delta)
+                    else:  # 휠 아래로
+                        new_volume = max(0.0, current_volume - delta)
+                    
+                    # 볼륨 설정 - Windows API 직접 호출
                     self.volume.SetMasterVolumeLevelScalar(new_volume, None)
+                    
+                    # UI 표시
                     self.show_volume(new_volume)
                 except Exception as e:
                     print(f"볼륨 조절 오류: {e}")
+                    # 오류 발생 시 재초기화
                     try:
-                        devices = pycaw.AudioUtilities.GetSpeakers()
-                        interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
-                        self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
-                    except Exception:
+                        self.init_volume_control()
+                        if self.volume:
+                            current_volume = self.volume.GetMasterVolumeLevelScalar()
+                            self.show_volume(current_volume)
+                    except:
                         pass
+                finally:
+                    # 항상 COM 해제
+                    pythoncom.CoUninitialize()
 
 if __name__ == "__main__":
     controller = VolumeController()
