@@ -57,12 +57,40 @@ class VolumeController:
 
     def init_volume_control(self):
         try:
-            devices = pycaw.AudioUtilities.GetSpeakers()
-            interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            pythoncom.CoInitialize()
+            # 기본 오디오 출력 장치 대신 활성 장치 가져오기
+            devices = pycaw.AudioUtilities.GetAllDevices()
+            active_device = None
+            
+            # 활성 장치 찾기 (기본 또는 블루투스)
+            for device in devices:
+                if device.state == 1:  # 활성 상태
+                    active_device = device
+                    break
+            
+            # 활성 장치가 없으면 기본 스피커 사용
+            if not active_device:
+                # 기존 방식으로 기본 스피커 가져오기
+                devices = pycaw.AudioUtilities.GetSpeakers()
+                interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            else:
+                # 활성 장치 (블루투스 포함) 사용
+                interface = active_device.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            
             self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
+            print("볼륨 컨트롤 초기화 성공")
         except Exception as e:
             print(f"볼륨 초기화 오류: {e}")
             self.volume = None
+            try:
+                # 기본 방식으로 다시 시도
+                devices = pycaw.AudioUtilities.GetSpeakers()
+                interface = devices.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+                self.volume = interface.QueryInterface(pycaw.IAudioEndpointVolume)
+                print("기본 방식으로 볼륨 컨트롤 초기화 성공")
+            except Exception as e:
+                print(f"두 번째 볼륨 초기화 시도 실패: {e}")
+                self.volume = None
 
     def check_startup(self):
         try:
@@ -171,6 +199,22 @@ class VolumeController:
                 finally:
                     # 항상 COM 해제
                     pythoncom.CoUninitialize()
+
+    def get_default_device(self):
+        try:
+            # 현재 사용 중인 기본 오디오 장치 가져오기
+            enumerator = pycaw.AudioUtilities.GetDeviceEnumerator()
+            default_device = enumerator.GetDefaultAudioEndpoint(0, 1)  # eRender, eConsole
+            
+            # 장치 ID 저장
+            self.default_device_id = default_device.GetId()
+            
+            # 오디오 엔드포인트 가져오기
+            interface = default_device.Activate(pycaw.IAudioEndpointVolume._iid_, CLSCTX_ALL, None)
+            return interface.QueryInterface(pycaw.IAudioEndpointVolume)
+        except Exception as e:
+            print(f"기본 오디오 장치 가져오기 실패: {e}")
+            return None
 
 if __name__ == "__main__":
     controller = VolumeController()
