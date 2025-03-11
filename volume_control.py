@@ -201,7 +201,7 @@ class VolumeController:
                     current_volume = self.volume.GetMasterVolumeLevelScalar()
                     
                     # 새 볼륨 계산
-                    delta = 0.02  # 2%씩 조절
+                    delta = 0.04  # 4%씩 조절
                     if dy > 0:  # 휠 위로
                         new_volume = min(1.0, current_volume + delta)
                     else:  # 휠 아래로
@@ -219,7 +219,7 @@ class VolumeController:
                         if self.init_volume_control() and self.volume:
                             # 재초기화 성공 시 바로 볼륨 조절 재시도
                             current_volume = self.volume.GetMasterVolumeLevelScalar()
-                            delta = 0.02
+                            delta = 0.04
                             new_volume = min(1.0, current_volume + delta) if dy > 0 else max(0.0, current_volume - delta)
                             self.volume.SetMasterVolumeLevelScalar(new_volume, None)
                             self.show_volume(new_volume)

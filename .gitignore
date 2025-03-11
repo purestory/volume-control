@@ -24,7 +24,17 @@ wheels/
 venv/
 ENV/
 
+# PyInstaller
+*.manifest
+*.spec
+
 # IDE
 .idea/
 .vscode/
-*.swp 
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini 
